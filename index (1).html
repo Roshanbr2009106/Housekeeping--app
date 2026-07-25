@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Housekeeping Sign-off</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F6E56">
+<style>
+  :root{
+    --ink:#1a1a18; --sub:#6b6a63; --line:#e4e2d9; --bg:#faf9f5; --card:#ffffff;
+    --accent:#0F6E56; --accent-bg:#e1f5ee; --accent-dark:#04342c;
+    --warn:#854f0b; --warn-bg:#faeeda;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:40px}
+  .wrap{max-width:480px;margin:0 auto;padding:20px 16px}
+  h1{font-size:19px;font-weight:600;margin:4px 0 2px}
+  .sub{font-size:13px;color:var(--sub);margin:0 0 20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--sub);margin:0 0 6px;font-weight:500}
+  input, select, textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;margin-bottom:12px;background:#fff;font-family:inherit}
+  input:focus, select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button{width:100%;padding:13px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-secondary{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-success{background:var(--accent);color:#fff}
+  .btn-success:disabled{background:var(--accent-bg);color:var(--accent);opacity:1}
+  .btn-flag{background:#fff;border:1px solid #c9a227;color:#8a6d1a}
+  .btn-danger{background:#b3311f;color:#fff;margin-top:8px}
+  .chip.flagged{border-color:#b3311f;background:#fbe9e6;color:#8a2114}
+  .flag-note{font-size:12px;color:#8a2114;background:#fbe9e6;border-radius:8px;padding:8px 10px;margin-bottom:6px}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  .progress-track{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:6px}
+  .progress-fill{height:100%;background:var(--accent);transition:width .3s}
+  .progress-fill.quorum{background:#c9a227}
+  .progress-label{font-size:12px;color:var(--sub);margin-bottom:4px;text-align:right}
+  .quorum-note{font-size:11px;color:var(--sub);margin-bottom:14px}
+  .chip{font-size:12px;padding:6px 4px;text-align:center;border-radius:8px;border:1px solid var(--line);background:#fdfcf9;color:var(--sub)}
+  .chip.done{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-dark)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:6px;margin-bottom:14px}
+  .taskitem{padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;font-size:14px;cursor:pointer}
+  .taskitem:active{background:var(--bg)}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:6px}
+  .tag.open{background:var(--warn-bg);color:var(--warn)}
+  .tag.closed{background:var(--accent-bg);color:var(--accent-dark)}
+  .tag.type{background:#eee;color:var(--sub)}
+  .link-box{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;word-break:break-all;color:var(--sub)}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.show{opacity:1}
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  a.textlink{color:var(--accent);font-size:13px;text-decoration:none;font-weight:500}
+  .hidden{display:none}
+  .center-msg{text-align:center;color:var(--sub);font-size:13px;padding:20px 0}
+  .checklist-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .checklist-item:last-child{border-bottom:none}
+  .checklist-item input[type=checkbox]{width:20px;height:20px;margin:0;flex-shrink:0}
+  .checklist-item span{font-size:14px}
+  .checklist-item.checked span{color:var(--sub);text-decoration:line-through}
+  .segmented{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .segmented button{flex:1;background:#fff;color:var(--sub);border-radius:0;font-weight:500;font-size:13px;padding:10px}
+  .segmented button.active{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div id="setup-screen" class="hidden">
+    <h1>Setup needed</h1>
+    <p class="sub">Paste your Firebase config into the CONFIG section near the bottom of this file. See SETUP_GUIDE.md.</p>
+  </div>
+
+  <!-- WORKER HOME -->
+  <div id="worker-home">
+    <div class="nav"><div><h1>Housekeeping</h1><p class="sub">Daily checklist and one-off jobs</p></div></div>
+
+    <div class="segmented">
+      <button id="tab-checklist" class="active" onclick="switchTab('checklist')">Today's checklist</button>
+      <button id="tab-adhoc" onclick="switchTab('adhoc')">New job</button>
+    </div>
+
+    <div id="checklist-tab">
+      <div class="card">
+        <div id="checklist-items"><div class="center-msg">Loading checklist...</div></div>
+        <button class="btn-primary" id="submit-checklist-btn" onclick="submitChecklist()" style="margin-top:10px">Submit today's checklist</button>
+      </div>
+    </div>
+
+    <div id="adhoc-tab" class="hidden">
+      <div class="card">
+        <label>Job description</label>
+        <input id="f-desc" type="text" placeholder="e.g. Deep clean guest bathroom 2">
+        <label>Location</label>
+        <input id="f-loc" type="text" placeholder="e.g. Villa 4, Bathroom 2">
+        <button class="btn-primary" onclick="createAdhocTask()">Mark complete and notify owners</button>
+      </div>
+    </div>
+
+    <p class="sub" style="margin:6px 0 10px">Recent submissions</p>
+    <div id="task-list"><div class="center-msg">Loading...</div></div>
+    <div style="height:10px"></div>
+    <a class="textlink" href="#" onclick="showScreen('owners');return false">Manage owner list</a><br><br>
+    <a class="textlink" href="#" onclick="showScreen('checklist-admin');return false">Manage daily checklist items</a>
+  </div>
+
+  <!-- TASK DETAIL (worker) -->
+  <div id="detail-screen" class="hidden">
+    <div class="nav"><a class="textlink" href="#" onclick="showScreen('worker');return false">&larr; Back</a></div>
+    <h1 id="d-desc"></h1>
+    <p class="sub" id="d-loc"></p>
+    <div class="card">
+      <div class="progress-track"><div class="progress-fill" id="d-bar" style="width:0%"></div></div>
+      <div class="progress-label" id="d-count">0 / 16 responded</div>
+      <div class="quorum-note" id="d-quorum-note"></div>
+      <div class="grid" id="d-grid"></div>
+      <div class="link-box"><span id="d-link"></span></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="copyMemberLink()">Copy link</button>
+        <button class="btn-secondary" onclick="shareWhatsapp()">Share on WhatsApp</button>
+      </div>
+    </div>
+    <div class="card hidden" id="report-card">
+      <strong>Approved &mdash; quorum reached</strong>
+      <div id="report-body" style="font-size:13px;color:var(--sub);line-height:1.8;margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- OWNER LIST MANAGEMENT -->
+  <div id="owners-screen" class="hidden">
+    <div class="nav"><a class="textlink" href="#" onclick="showScreen('worker');return false">&larr; Back</a></div>
+    <h1>House owners</h1>
+    <p class="sub">These 16 names appear on the confirmation screen. Task is approved once 4 of them confirm.</p>
+    <div class="card">
+      <textarea id="owners-list" rows="10" placeholder="One name per line"></textarea>
+      <button class="btn-primary" onclick="saveOwners()">Save owner list</button>
+    </div>
+  </div>
+
+  <!-- CHECKLIST TEMPLATE MANAGEMENT -->
+  <div id="checklist-admin-screen" class="hidden">
+    <div class="nav"><a class="textlink" href="#" onclick="showScreen('worker');return false">&larr; Back</a></div>
+    <h1>Daily checklist items</h1>
+    <p class="sub">These appear as the recurring daily checklist.</p>
+    <div class="card">
+      <textarea id="checklist-template" rows="8" placeholder="One item per line, e.g.&#10;Sweep and mop all floors&#10;Restock bathroom supplies&#10;Empty trash bins"></textarea>
+      <button class="btn-primary" onclick="saveChecklistTemplate()">Save checklist items</button>
+    </div>
+  </div>
+
+  <!-- OWNER CONFIRMATION SCREEN (via ?task=ID link) -->
+  <div id="confirm-screen" class="hidden">
+    <p class="sub" style="margin-bottom:4px">Task confirmation</p>
+    <h1 id="m-desc"></h1>
+    <p class="sub" id="m-loc"></p>
+    <div class="card">
+      <label>Your name</label>
+      <select id="m-select"></select>
+      <button class="btn-success" id="m-confirm-btn" onclick="confirmOwner()">Confirm task complete</button>
+      <div style="height:8px"></div>
+      <button class="btn-flag" id="m-flag-btn" onclick="showFlagBox()">Not satisfied / flag an issue</button>
+      <div id="flag-box" class="hidden" style="margin-top:12px">
+        <label>What's the issue?</label>
+        <textarea id="flag-reason" rows="3" placeholder="e.g. Bathroom not cleaned, trash not emptied"></textarea>
+        <button class="btn-danger" onclick="flagOwner()">Submit issue</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ====================== CONFIG =======================
+   Paste your Firebase config object below (same project
+   you already created is fine — this app uses its own
+   collections so it won't clash with other apps).
+   ======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyArWexWy5Fb0HYRI4M67XJzuq7_j2Nu4HY",
+  authDomain: "mobile-app-5ec43.firebaseapp.com",
+  projectId: "mobile-app-5ec43",
+  storageBucket: "mobile-app-5ec43.firebasestorage.app",
+  messagingSenderId: "154710828276",
+  appId: "1:154710828276:web:6c3a8ef2decc7225bfaaa1"
+};
+const REQUIRED_CONFIRMATIONS = 4; // out of 16 owners
+/* ====================================================== */
+
+let db, currentTaskId = null, currentTaskData = null;
+
+function boot(){
+  if(firebaseConfig.apiKey.startsWith("PASTE_")){
+    document.getElementById('setup-screen').classList.remove('hidden');
+    document.getElementById('worker-home').classList.add('hidden');
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+
+  const params = new URLSearchParams(location.search);
+  const taskParam = params.get('task');
+  if(taskParam){
+    openConfirmView(taskParam);
+  } else {
+    loadTaskList();
+    loadOwnersIntoField();
+    loadChecklistTemplate();
+  }
+}
+
+function showScreen(name){
+  ['worker-home','detail-screen','owners-screen','checklist-admin-screen','confirm-screen'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
+  const map = {worker:'worker-home', detail:'detail-screen', owners:'owners-screen', 'checklist-admin':'checklist-admin-screen', confirm:'confirm-screen'};
+  document.getElementById(map[name]).classList.remove('hidden');
+}
+
+function switchTab(tab){
+  document.getElementById('tab-checklist').classList.toggle('active', tab==='checklist');
+  document.getElementById('tab-adhoc').classList.toggle('active', tab==='adhoc');
+  document.getElementById('checklist-tab').classList.toggle('hidden', tab!=='checklist');
+  document.getElementById('adhoc-tab').classList.toggle('hidden', tab!=='adhoc');
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- owners management ---------- */
+async function loadOwnersIntoField(){
+  const doc = await db.collection('hk_config').doc('owners').get();
+  const names = doc.exists ? doc.data().names : [];
+  document.getElementById('owners-list').value = names.join('\n');
+}
+async function saveOwners(){
+  const names = document.getElementById('owners-list').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  await db.collection('hk_config').doc('owners').set({names});
+  toast('Owner list saved');
+  showScreen('worker');
+}
+async function getOwners(){
+  const doc = await db.collection('hk_config').doc('owners').get();
+  return doc.exists ? doc.data().names : [];
+}
+
+/* ---------- checklist template management ---------- */
+async function loadChecklistTemplate(){
+  const doc = await db.collection('hk_config').doc('checklist').get();
+  const items = doc.exists ? doc.data().items : [];
+  document.getElementById('checklist-template').value = items.join('\n');
+  renderChecklistItems(items);
+}
+async function saveChecklistTemplate(){
+  const items = document.getElementById('checklist-template').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  await db.collection('hk_config').doc('checklist').set({items});
+  toast('Checklist saved');
+  renderChecklistItems(items);
+  showScreen('worker');
+}
+function renderChecklistItems(items){
+  const el = document.getElementById('checklist-items');
+  if(items.length===0){ el.innerHTML = '<div class="center-msg">No checklist items yet. Add some under "Manage daily checklist items."</div>'; return; }
+  el.innerHTML = '';
+  items.forEach((item,i)=>{
+    const row = document.createElement('label');
+    row.className = 'checklist-item';
+    row.innerHTML = `<input type="checkbox" data-idx="${i}" onchange="this.parentNode.classList.toggle('checked', this.checked)"><span>${item}</span>`;
+    el.appendChild(row);
+  });
+}
+
+/* ---------- worker: task list ---------- */
+async function loadTaskList(){
+  const snap = await db.collection('hk_tasks').orderBy('createdAt','desc').limit(20).get();
+  const el = document.getElementById('task-list');
+  if(snap.empty){ el.innerHTML = '<div class="center-msg">No submissions yet.</div>'; return; }
+  el.innerHTML = '';
+  snap.forEach(doc=>{
+    const t = doc.data();
+    const confirmedCount = Object.keys(t.confirmed||{}).length;
+    const approved = confirmedCount >= REQUIRED_CONFIRMATIONS;
+    const div = document.createElement('div');
+    div.className = 'taskitem';
+    div.onclick = ()=>openDetail(doc.id);
+    div.innerHTML = `${t.desc} <span class="tag type">${t.type==='checklist'?'Checklist':'Ad-hoc'}</span><span class="tag ${approved?'closed':'open'}">${confirmedCount}/${REQUIRED_CONFIRMATIONS}</span><br><span style="color:var(--sub);font-size:12px">${t.loc||''}</span>`;
+    el.appendChild(div);
+  });
+}
+
+async function submitChecklist(){
+  const boxes = document.querySelectorAll('#checklist-items input[type=checkbox]');
+  const items = document.getElementById('checklist-template').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const checkedItems = [];
+  boxes.forEach(b=>{ if(b.checked) checkedItems.push(items[b.dataset.idx]); });
+  if(checkedItems.length === 0){ toast('Check off at least one item'); return; }
+  const owners = await getOwners();
+  if(owners.length === 0){ toast('Add owner list first'); showScreen('owners'); return; }
+  const today = new Date().toLocaleDateString(undefined,{day:'numeric',month:'short'});
+  const ref = await db.collection('hk_tasks').add({
+    desc: `Daily checklist — ${today} (${checkedItems.length}/${items.length} items)`,
+    loc: checkedItems.join(', '),
+    type: 'checklist',
+    owners, confirmed:{}, createdAt: Date.now()
+  });
+  loadTaskList();
+  openDetail(ref.id);
+}
+
+async function createAdhocTask(){
+  const desc = document.getElementById('f-desc').value.trim();
+  const loc = document.getElementById('f-loc').value.trim();
+  if(!desc){ toast('Enter a job description'); return; }
+  const owners = await getOwners();
+  if(owners.length === 0){ toast('Add owner list first'); showScreen('owners'); return; }
+  const ref = await db.collection('hk_tasks').add({
+    desc, loc, type:'adhoc', owners, confirmed:{}, createdAt: Date.now()
+  });
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-loc').value='';
+  loadTaskList();
+  openDetail(ref.id);
+}
+
+async function openDetail(id){
+  currentTaskId = id;
+  const doc = await db.collection('hk_tasks').doc(id).get();
+  currentTaskData = doc.data();
+  renderDetail();
+  showScreen('detail');
+}
+
+function renderDetail(){
+  const t = currentTaskData;
+  document.getElementById('d-desc').textContent = t.desc;
+  document.getElementById('d-loc').textContent = t.loc || '';
+  const responses = t.confirmed || {};
+  const owners = t.owners || [];
+  const entries = Object.entries(responses).map(([name,val])=>{
+    // support old data shape (plain timestamp) and new shape ({status,time,note})
+    if(typeof val === 'number') return [name, {status:'confirmed', time:val, note:''}];
+    return [name, val];
+  });
+  const confirmedEntries = entries.filter(([,v])=>v.status!=='flagged');
+  const flaggedEntries = entries.filter(([,v])=>v.status==='flagged');
+  const count = confirmedEntries.length;
+  const approved = count >= REQUIRED_CONFIRMATIONS;
+  const bar = document.getElementById('d-bar');
+  bar.style.width = (owners.length? count/owners.length*100:0)+'%';
+  bar.className = 'progress-fill' + (approved ? ' quorum':'');
+  document.getElementById('d-count').textContent = `${count} confirmed, ${flaggedEntries.length} flagged / ${owners.length} owners`;
+  document.getElementById('d-quorum-note').textContent = approved
+    ? `Approved — quorum of ${REQUIRED_CONFIRMATIONS} confirmations reached`
+    : `Needs ${REQUIRED_CONFIRMATIONS} confirmations to approve (${REQUIRED_CONFIRMATIONS-count} more needed)`;
+  const grid = document.getElementById('d-grid');
+  grid.innerHTML = '';
+  const respMap = Object.fromEntries(entries);
+  owners.forEach(name=>{
+    const resp = respMap[name];
+    const chip = document.createElement('div');
+    if(resp && resp.status==='flagged'){
+      chip.className = 'chip flagged';
+      chip.textContent = '\u26A0 ' + name;
+    } else if(resp){
+      chip.className = 'chip done';
+      chip.textContent = '\u2713 ' + name;
+    } else {
+      chip.className = 'chip';
+      chip.textContent = name;
+    }
+    grid.appendChild(chip);
+  });
+  const link = `${location.origin}${location.pathname}?task=${currentTaskId}`;
+  document.getElementById('d-link').textContent = link;
+
+  const reportCard = document.getElementById('report-card');
+  if(approved || flaggedEntries.length>0){
+    reportCard.classList.remove('hidden');
+    let html = `<strong>${t.desc}</strong><br>${t.loc||''}<br><br>`;
+    if(flaggedEntries.length>0){
+      html += flaggedEntries.map(([n,v])=>`<div class="flag-note">\u26A0 ${n}: ${v.note||'No reason given'} (${new Date(v.time).toLocaleString()})</div>`).join('');
+      html += '<br>';
+    }
+    html += confirmedEntries.map(([n,v])=>`${n} &mdash; confirmed at ${new Date(v.time).toLocaleString()}`).join('<br>');
+    document.getElementById('report-body').innerHTML = html;
+    reportCard.querySelector('strong').textContent = approved ? 'Approved — quorum reached' : 'Issues flagged — needs attention';
+  } else {
+    reportCard.classList.add('hidden');
+  }
+}
+
+function copyMemberLink(){
+  const link = `${location.origin}${location.pathname}?task=${currentTaskId}`;
+  navigator.clipboard?.writeText(link);
+  toast('Link copied');
+}
+function shareWhatsapp(){
+  const link = `${location.origin}${location.pathname}?task=${currentTaskId}`;
+  const text = encodeURIComponent(`Please confirm this task is complete: ${currentTaskData.desc}\n${link}`);
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
+/* ---------- owner confirmation view ---------- */
+async function openConfirmView(taskId){
+  currentTaskId = taskId;
+  const doc = await db.collection('hk_tasks').doc(taskId).get();
+  if(!doc.exists){
+    document.getElementById('m-desc').textContent = 'This link is no longer valid';
+    showScreen('confirm');
+    return;
+  }
+  currentTaskData = doc.data();
+  document.getElementById('m-desc').textContent = currentTaskData.desc;
+  document.getElementById('m-loc').textContent = currentTaskData.loc || '';
+  const sel = document.getElementById('m-select');
+  sel.innerHTML = '';
+  (currentTaskData.owners||[]).forEach(name=>{
+    const opt = document.createElement('option');
+    const existing = (currentTaskData.confirmed||{})[name];
+    const tag = existing ? (typeof existing==='object' && existing.status==='flagged' ? ' (issue flagged)' : ' (already confirmed)') : '';
+    opt.value = name;
+    opt.textContent = name + tag;
+    sel.appendChild(opt);
+  });
+  document.getElementById('flag-box').classList.add('hidden');
+  document.getElementById('flag-reason').value = '';
+  document.getElementById('m-confirm-btn').textContent = 'Confirm task complete';
+  document.getElementById('m-confirm-btn').disabled = false;
+  document.getElementById('m-flag-btn').classList.remove('hidden');
+  showScreen('confirm');
+}
+
+function showFlagBox(){
+  document.getElementById('flag-box').classList.remove('hidden');
+}
+
+async function confirmOwner(){
+  const name = document.getElementById('m-select').value;
+  const ref = db.collection('hk_tasks').doc(currentTaskId);
+  await db.runTransaction(async tx=>{
+    const doc = await tx.get(ref);
+    const data = doc.data();
+    const confirmed = data.confirmed || {};
+    confirmed[name] = {status:'confirmed', time:Date.now(), note:''};
+    tx.update(ref, {confirmed});
+  });
+  document.getElementById('m-confirm-btn').textContent = '\u2713 Confirmed';
+  document.getElementById('m-confirm-btn').disabled = true;
+  document.getElementById('m-flag-btn').classList.add('hidden');
+  document.getElementById('flag-box').classList.add('hidden');
+  toast('Thank you, confirmation recorded');
+}
+
+async function flagOwner(){
+  const name = document.getElementById('m-select').value;
+  const note = document.getElementById('flag-reason').value.trim();
+  if(!note){ toast('Please describe the issue briefly'); return; }
+  const ref = db.collection('hk_tasks').doc(currentTaskId);
+  await db.runTransaction(async tx=>{
+    const doc = await tx.get(ref);
+    const data = doc.data();
+    const confirmed = data.confirmed || {};
+    confirmed[name] = {status:'flagged', time:Date.now(), note};
+    tx.update(ref, {confirmed});
+  });
+  document.getElementById('m-confirm-btn').textContent = 'Confirm task complete';
+  document.getElementById('m-confirm-btn').disabled = true;
+  document.getElementById('m-flag-btn').classList.add('hidden');
+  document.getElementById('flag-box').innerHTML = '<p class="flag-note">\u26A0 Issue submitted \u2014 thank you</p>';
+  toast('Issue reported');
+}
+
+boot();
+</script>
+</body>
+</html>
